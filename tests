@@ -1,0 +1,53 @@
+--- DataManager ---
+COIN_CODES = ["BTC",
+              "ETH",
+              "XRP",
+              "LINK",
+              "XLM",
+              "EOS",
+              "BNB",
+              "TRX",
+              "DOGE",
+              "MATIC",
+              "AVAX",
+              "SOL",
+              "UNI"]
+dataManager = DataManager(COIN_CODES)
+
+dataManager.load_all_data_files()
+dataManager.cut_at_same_end()
+dataManager.initialize_i_and_state_parameters()
+dataManager.set_state_data()
+dataManager.get_market_state_data()
+
+--- AssetManager ---
+COIN_CODES = ["BTC",
+              "ETH",
+              "XRP",
+              "LINK",
+              "XLM",
+              "EOS",
+              "BNB",
+              "TRX",
+              "DOGE",
+              "MATIC",
+              "AVAX",
+              "SOL",
+              "UNI"]
+a = AssetManager(100, COIN_CODES, 0.005, 0.001, 0.005, 0.5, 1e-5)
+a.add_order({"Time": 2013113, "Type": "buy", "Asset": "BTC", "Amount_euro": -5, "Amount_asset": 0.003, "Price": 30000})
+a.add_order({"Time": 2013114, "Type": "buy", "Asset": "ETH", "Amount_euro": -5, "Amount_asset": 0.039, "Price": 3000})
+a.add_order({"Time": 2013115, "Type": "buy", "Asset": "DOGE", "Amount_euro": -50, "Amount_asset": 10, "Price": 3})
+a.add_order({"Time": 2013116, "Type": "buy", "Asset": "DOGE", "Amount_euro": -10, "Amount_asset": 2, "Price": 3.6})
+a.add_order({"Time": 2013117, "Type": "buy", "Asset": "BTC", "Amount_euro": -20, "Amount_asset": 0.01, "Price": 31000})
+
+bid_prices = {"BTC": 30000,"ETH": 2900,"XRP":1,"LINK":1,"XLM":1,"EOS":1,"BNB":1,"TRX":1,"DOGE": 3.1,"MATIC":1,"AVAX":1,"SOL":1, "UNI":1}
+ask_prices = {"BTC": 32000,"ETH": 3100,"XRP":1,"LINK":1,"XLM":1,"EOS":1,"BNB":1,"TRX":1,"DOGE": 3.1,"MATIC":1,"AVAX":1,"SOL":1, "UNI":1}
+a.execute_all_possible_orders(ask_prices, bid_prices)
+
+a.add_order({"Time": 2013118, "Type": "sell", "Asset": "DOGE", "Amount_euro": 15, "Amount_asset": -1, "Price": 4.5})
+a.add_order({"Time": 2013119, "Type": "sell", "Asset": "BTC", "Amount_euro": 10, "Amount_asset": -0.001, "Price": 31000})
+a.add_order({"Time": 2013120, "Type": "sell", "Asset": "BTC", "Amount_euro": 100, "Amount_asset": -0.04, "Price": 33000})
+a.add_order({"Time": 2013121, "Type": "sell", "Asset": "DOGE", "Amount_euro": 100000, "Amount_asset": -400, "Price": 2.3})
+
+--- Kobalt_1 ---
