@@ -17,7 +17,7 @@ class Kobalt_model_A2C_continuous(nn.Module):
             - as well as the value output
     """
     def __init__(self, input_size: int, action_size: int, hidden_size: int, n_layers_base: int, n_layers_actor: int,
-                 n_layers_critic: int, learning_rate=3e-4):
+                 n_layers_critic: int):
         super(Kobalt_model_A2C_continuous, self).__init__()
 
         self.input_size = input_size
@@ -92,7 +92,7 @@ class Kobalt_model_A2C_continuous(nn.Module):
 
     # --- FORWARD FUNCTION ---
 
-    def forward(self, state: list):
+    def forward(self, state: np.array):
         state_tensor = torch.FloatTensor(state)
         base_out = self.base(state_tensor)
         return self.mu(base_out), self.var(base_out), self.value(base_out)
