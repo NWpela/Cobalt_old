@@ -14,8 +14,8 @@ class Kobalt_env:
             0: use reset to reset the parameters
             1 -> 2 -> 3 -> 4 -> 1 -> ...
     """
-    def __init__(self, cash_euro: float, traded_assets: list, state_data_proportion: float = 1/300,
-                 interval: str = "15m", inventory_rate: float = 0.005,
+    def __init__(self, cash_euro: float, traded_assets: list, alpha4_ema_win_list: list,
+                 state_data_proportion: float = 1/300, interval: str = "15m", inventory_rate: float = 0.005,
                  fee_rate: float = 0.001, MtM_proportion_lim: float = 0.5):
         self.traded_assets = traded_assets
         self.N_assets = len(traded_assets)
@@ -23,8 +23,9 @@ class Kobalt_env:
         # define asset manager and data manager
         self.asset_manager = AssetManager(cash_euro, traded_assets, inventory_rate=inventory_rate, fee_rate=fee_rate,
                                           MtM_proportion_lim=MtM_proportion_lim)
-        self.data_manager = DataManager(traded_assets, state_data_proportion=state_data_proportion,
+        self.data_manager = DataManager(traded_assets, alpha4_ema_win_list, state_data_proportion=state_data_proportion,
                                         interval=interval)
+        self.N_baselines = self.data_manager.N_baselines
         self.spot_prices = None
         self.rewards = []
 
@@ -64,12 +65,15 @@ class Kobalt_env:
         # market
         state_market = self.data_manager.get_market_state_data()
 
+        # alpha4
+        state_alpha4 = self.data_manager.get_alpha4_state_data()
+
         # assets
         spot_ref = self.data_manager.dict_spot_ref
         state_asset, reward = self.asset_manager.get_new_state_and_reward(self.spot_prices, spot_ref)
         self.rewards.append(reward)
 
-        return np.array(state_market + state_asset), reward
+        return np.array(state_market + state_asset), state_alpha4, reward
 
     # 3
     def do_action(self, action_array: np.array):

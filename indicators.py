@@ -1,6 +1,6 @@
 import pandas as pd
 from little_logger import Little_logger
-from ta.trend import MACD, ADXIndicator, CCIIndicator
+from ta.trend import MACD, ADXIndicator, CCIIndicator, ema_indicator
 from ta.momentum import RSIIndicator
 from ta.volume import volume_weighted_average_price, ease_of_movement
 from ta.volatility import BollingerBands
@@ -22,6 +22,21 @@ def compute_MACD(df: pd.DataFrame):
     macd = MACD(close=df.Close, fillna=True)
     df["MACD"] = macd.macd_diff()
 
+def compute_baselines(ema_win_list: list, df: pd.DataFrame):
+    # df is supposed to contain a "Close" column
+    for k in ema_win_list:
+        ema_name = f"EMA_{k}"
+        df[ema_name] = ema_indicator(df.Close, window=k, fillna=True)
+    df["EMA_0"] = df.Close
+    df["EMA_LAST"] = df.Close.mean()
+
+    # computing baselines
+    ema_win_list_extended = [0] + ema_win_list + ["LAST"]
+    for k in range(len(ema_win_list_extended) - 1):
+        baseline_name = f"BASELINE_{k}"
+        ema_name_1 = f"EMA_{ema_win_list_extended[k]}"
+        ema_name_2 = f"EMA_{ema_win_list_extended[k + 1]}"
+        df[baseline_name] = df[ema_name_1] - df[ema_name_2]
 
 def compute_ADX(df: pd.DataFrame):
     # df is supposed to contain a "High", "Low" and "Close" column

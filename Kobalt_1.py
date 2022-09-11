@@ -19,6 +19,11 @@ from env import Kobalt_env
 from model import Kobalt_model_A2C_continuous
 from little_logger import Little_logger
 
+"""
+    Cobalt Development Edition
+    |-> Alpha4inside version
+"""
+
 matplotlib.use('Qt5Agg')
 pd.set_option('display.max_rows', 50, 'display.max_columns', None)
 logger = Little_logger("Kobalt_1")
@@ -33,24 +38,30 @@ LEARNING_RATE = 3e-4
 GAMMA = 0.99
 ENTROPY_BETA = 0
 STEPS_PER_EPISOD = 20
-MAX_EPISODS = 3000
+MAX_EPISODS = 30
 
 # Env parameters
 CASH_EURO = 100
 TRADED_ASSETS = ["BTC", "ETH", "XRP", "LINK", "XLM", "EOS", "BNB", "TRX", "DOGE", "MATIC", "AVAX", "SOL", "UNI"]
-STATE_DATA_PROPORTION = 1/3000
+STATE_DATA_PROPORTION = 1/1000
 INTERVAL = "15m"
 INVENTORY_RATE = 0
 FEE_RATE = 0
 MTM_PROPORTION_LIM = 0.5
 
+# Alpha4 parameters
+EMA_WIN_LIST = [20, 100, 1000]
+KERNEL_SIZE_ALPHA4 = 7
+
 
 class Kobalt_1:
     def __init__(self):
-        logger.info("***** Kobalt Development Edition *****")
+        logger.info("***** Cobalt Development Edition *****")
+        logger.info("***** Alpha4inside Version *****")
         # Environment
-        self.env = Kobalt_env(CASH_EURO, TRADED_ASSETS, state_data_proportion=STATE_DATA_PROPORTION, interval=INTERVAL,
-                              inventory_rate=INVENTORY_RATE, fee_rate=FEE_RATE, MtM_proportion_lim=MTM_PROPORTION_LIM)
+        self.env = Kobalt_env(CASH_EURO, TRADED_ASSETS, EMA_WIN_LIST, state_data_proportion=STATE_DATA_PROPORTION,
+                              interval=INTERVAL, inventory_rate=INVENTORY_RATE, fee_rate=FEE_RATE,
+                              MtM_proportion_lim=MTM_PROPORTION_LIM)
         self.env.reset_all()
 
         # Model state/action dimensions
@@ -59,7 +70,9 @@ class Kobalt_1:
 
         # Model definition
         self.model = Kobalt_model_A2C_continuous(self.state_dim, self.action_dim, HIDDEN_SIZE, N_LAYERS_BASE,
-                                                 N_LAYERS_ACTOR, N_LAYERS_CRITIC)
+                                                 N_LAYERS_ACTOR, N_LAYERS_CRITIC, self.env.N_baselines,
+                                                 self.env.N_assets, KERNEL_SIZE_ALPHA4,
+                                                 self.env.data_manager.state_data_size)
         self.optimizer = optim.Adam(self.model.parameters(), lr=LEARNING_RATE)
 
         # Global data
@@ -69,6 +82,8 @@ class Kobalt_1:
         self.index_values = []
         self.training_MtM = []
 
+    # --- TRAIN / RUN FUNCTIONS ---
+
     def train(self):
         logger.info("--- Training started ---")
         self.training_rewards = []
@@ -76,12 +91,12 @@ class Kobalt_1:
         self.index_values = []
         next_step_possible = self.env.is_next_step_possible()
         self.env.next_step_market()
-        state, _ = self.env.get_new_state_and_reward()  # reward doesn't matter here
+        state, state_alpha4, _ = self.env.get_new_state_and_reward()  # reward doesn't matter here
         cumulated_rewards_ep = 0
 
         episod_num = 0
         while episod_num < MAX_EPISODS and next_step_possible:
-            # reset only positions for each episod
+            # reset only positions for each episode
             self.env.reset_positions()
             self.training_episods.append(episod_num)
 
@@ -94,10 +109,8 @@ class Kobalt_1:
             step_num_episod = 0
             done = self.env.is_done()
             while step_num_episod < STEPS_PER_EPISOD and next_step_possible and not done:
-                #print(self.env.data_manager.dict_state_raw_data['BTC'].iloc[-1].name, self.env.data_manager.step,
-                #      self.env.data_manager.step_episod)
                 # variables computed from the model
-                mu_v_n, var_v_n, value_n = self.model.forward(state)
+                mu_v_n, var_v_n, value_n = self.model.forward(state, state_alpha4)
                 value = value_n.detach().numpy()
                 mu_v = mu_v_n.detach().numpy()
                 sigma_v = torch.sqrt(var_v_n).data.cpu().numpy()
@@ -114,14 +127,14 @@ class Kobalt_1:
                 env_action = action_v.clip(-1, 1)
                 self.env.do_action(env_action)
                 self.env.next_step_market()
-                new_state, reward = self.env.get_new_state_and_reward()
+                new_state, new_state_alpha4, reward = self.env.get_new_state_and_reward()
 
                 # adding variables to lists
                 rewards.append(reward)
                 values.append(value)
                 values_n.append(value_n)
                 log_probs_n.append(log_prob_n)
-                state = new_state
+                state, state_alpha4 = new_state, new_state_alpha4
 
                 # computing next step for market data and recovering done information
                 next_step_possible = self.env.is_next_step_possible()
@@ -131,10 +144,8 @@ class Kobalt_1:
             self.index_values.append(self.env.data_manager.get_index_value())
             self.env.data_manager.reset_next_episod()
 
-            #print(self.env.asset_manager.trades)
-
-            # when the episod is finished
-            _, _, Qval = self.model.forward(state)
+            # when the episode is finished
+            _, _, Qval = self.model.forward(state, state_alpha4)
             Qval = Qval.detach().numpy()[0]
             rewards_ep = np.sum(rewards)
             cumulated_rewards_ep += rewards_ep
@@ -145,7 +156,7 @@ class Kobalt_1:
 
             if episod_num % 1 == 0:
                 logger.info("Episode: {}, Steps: {}, Reward: {}, MtM: {}".format(episod_num, step_num_episod,
-                                                                                    np.sum(rewards), MtM))
+                                                                                 np.sum(rewards), MtM))
             if episod_num % 10 == 0:
                 print("TRADES:")
                 print(self.env.asset_manager.trades)
@@ -177,8 +188,12 @@ class Kobalt_1:
 
         logger.info("--- Training finished ---")
 
+    def run(self):
+        pass
+
+    # --- PLOTS ---
+
     def training_plot(self):
-        ### add index to the plot
         plt.figure(1)
         plt.plot(self.training_episods, self.training_rewards, self.training_episods, self.cumulated_training_rewards)
         plt.figure(2)

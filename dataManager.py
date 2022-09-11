@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 import os
 from little_logger import Little_logger
-from indicators import compute_MACD, compute_RSI, compute_EOM, compute_BBANDS
+from indicators import compute_MACD, compute_RSI, compute_EOM, compute_BBANDS, compute_baselines
 
 logger = Little_logger("DataManager")
 
@@ -15,8 +15,10 @@ class DataManager:
         Now based on binance data via API call
     """
 
-    def __init__(self, assets: list, state_data_proportion: float = 1/300, interval: str = "15m"):
+    def __init__(self, assets: list, alpha4_ema_win_list: list, state_data_proportion: float = 1/300,
+                 interval: str = "15m"):
         self.assets = assets
+        self.alpha4_ema_win_list = alpha4_ema_win_list
         self.state_data_proportion = state_data_proportion
         self.interval = interval
 
@@ -29,6 +31,8 @@ class DataManager:
         self.step = 1
         self.step_episod = 1
         self.indicator_columns = ["MACD", "RSI", "EOM", "BBANDS_PERCENT", "BBANDS_RANGE"]
+        self.N_baselines = len(alpha4_ema_win_list) + 1  # equal to len(EMA_WIN_LIST_EXTENDED)-1
+        self.baseline_names = [f"BASELINE_{i}" for i in range(self.N_baselines)]
 
         N_assets = len(assets)
         # base start/end
@@ -65,12 +69,12 @@ class DataManager:
 
     # --- INITIALIZING FUNCTIONS---
 
-    @staticmethod
-    def compute_indicators(df: pd.DataFrame):
+    def compute_indicators(self, df: pd.DataFrame):
         compute_MACD(df)
         compute_RSI(df)
         compute_EOM(df)
         compute_BBANDS(df)
+        compute_baselines(self.alpha4_ema_win_list, df)
 
     def load_data_file(self, asset: str, version: str = "v1"):
         pair = asset + "EUR"
@@ -136,10 +140,6 @@ class DataManager:
         for asset, raw_data in self.dict_raw_data.items():
             self.dict_state_raw_data[asset] = raw_data.iloc[self.i_series_start[asset]:self.i_series_end[asset]]
 
-    # --- COMPUTATION FUNCTIONS ---
-
-    # add here alpha4 methods later
-
     # --- STATE FUNCTIONS ---
 
     def get_spot_prices(self) -> dict:
@@ -169,6 +169,13 @@ class DataManager:
             ind_list += list(indicators)
 
         return spot_list + ind_list
+
+    def get_alpha4_state_data(self) -> np.array:
+        # Returns the current array of baselines for the alpha4 input part of the model
+        # The array is a 2d array whose lines contain concatenated baselines from the different assets
+        array_list = [np.array(self.dict_state_raw_data[asset][self.baseline_names]).transpose()
+                      for asset in self.assets]
+        return np.concatenate(array_list)
 
     def next_step(self):
         # Computes the next step
