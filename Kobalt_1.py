@@ -5,8 +5,6 @@ Created on Sat May  7 17:22:17 2022
 @author: Gaëtan Chanet
 """
 
-# Here we start, I hope this will lead me to JP Morgan, anyway, we'll see...
-
 import pandas as pd
 import torch
 import numpy as np
