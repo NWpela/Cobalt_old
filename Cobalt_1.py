@@ -13,13 +13,13 @@ import matplotlib
 import matplotlib.pyplot as plt
 import math as m
 import model
-from env import Kobalt_env
-from model import Kobalt_model_A2C_continuous
+from env import Cobalt_env
+from model import Cobalt_model_A2C_continuous
 from little_logger import Little_logger
 
 matplotlib.use('Qt5Agg')
 pd.set_option('display.max_rows', 50, 'display.max_columns', None)
-logger = Little_logger("Kobalt_1")
+logger = Little_logger("Cobalt_1")
 
 # Model parameters
 HIDDEN_SIZE = 50
@@ -31,7 +31,7 @@ LEARNING_RATE = 3e-4
 GAMMA = 0.99
 ENTROPY_BETA = 0
 STEPS_PER_EPISOD = 20
-MAX_EPISODS = 3000
+MAX_EPISODS = 100
 
 # Env parameters
 CASH_EURO = 100
@@ -43,11 +43,11 @@ FEE_RATE = 0
 MTM_PROPORTION_LIM = 0.5
 
 
-class Kobalt_1:
+class Cobalt_1:
     def __init__(self):
-        logger.info("***** Kobalt Development Edition *****")
+        logger.info("***** Cobalt Development Edition *****")
         # Environment
-        self.env = Kobalt_env(CASH_EURO, TRADED_ASSETS, state_data_proportion=STATE_DATA_PROPORTION, interval=INTERVAL,
+        self.env = Cobalt_env(CASH_EURO, TRADED_ASSETS, state_data_proportion=STATE_DATA_PROPORTION, interval=INTERVAL,
                               inventory_rate=INVENTORY_RATE, fee_rate=FEE_RATE, MtM_proportion_lim=MTM_PROPORTION_LIM)
         self.env.reset_all()
 
@@ -56,7 +56,7 @@ class Kobalt_1:
         self.action_dim = self.env.get_action_dim()
 
         # Model definition
-        self.model = Kobalt_model_A2C_continuous(self.state_dim, self.action_dim, HIDDEN_SIZE, N_LAYERS_BASE,
+        self.model = Cobalt_model_A2C_continuous(self.state_dim, self.action_dim, HIDDEN_SIZE, N_LAYERS_BASE,
                                                  N_LAYERS_ACTOR, N_LAYERS_CRITIC)
         self.optimizer = optim.Adam(self.model.parameters(), lr=LEARNING_RATE)
 
@@ -178,9 +178,18 @@ class Kobalt_1:
     def training_plot(self):
         ### add index to the plot
         plt.figure(1)
-        plt.plot(self.training_episods, self.training_rewards, self.training_episods, self.cumulated_training_rewards)
+        plt.plot(self.training_episods, self.training_rewards, label="Training rewards")
+        plt.plot(self.training_episods, self.cumulated_training_rewards, label="Cumulated training rewards")
+        plt.legend()
+        plt.title("Rewards")
         plt.figure(2)
-        plt.plot(self.training_episods, self.index_values)
+        plt.plot(self.training_episods, self.index_values, label="Index values")
+        plt.legend()
+        plt.title("Index")
+        plt.show()
 
 if __name__ == "__main__":
-    kob = Kobalt_1()
+    cob = Cobalt_1()
+    cob.train()
+    cob.training_plot()
+

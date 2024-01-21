@@ -5,20 +5,20 @@ import torch.nn as nn
 
 
 """
-    This file contains the full model for the Kobalt project
+    This file contains the full model for the Cobalt project
 """
 
 
-class Kobalt_model_A2C_continuous(nn.Module):
+class Cobalt_model_A2C_continuous(nn.Module):
     """
-        This class contains the whole neural model for the Kobalt project
+        This class contains the whole neural model for the Cobalt project
         It is used to handle continuous action spaces with 2 outputs:
             - the gaussian probability distribution output (mu, var)
             - as well as the value output
     """
     def __init__(self, input_size: int, action_size: int, hidden_size: int, n_layers_base: int, n_layers_actor: int,
                  n_layers_critic: int):
-        super(Kobalt_model_A2C_continuous, self).__init__()
+        super(Cobalt_model_A2C_continuous, self).__init__()
 
         self.input_size = input_size
         self.action_size = action_size

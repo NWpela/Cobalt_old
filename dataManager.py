@@ -11,7 +11,7 @@ logger = Little_logger("DataManager")
 class DataManager:
     """
         Based on a file and load it to get and the required data
-        Batch the data to return good parameters for Kobalt (data for episod)
+        Batch the data to return good parameters for Cobalt (data for episod)
         Now based on binance data via API call
     """
 

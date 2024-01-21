@@ -5,12 +5,12 @@ from dataManager import DataManager
 
 
 """
-    This file contains the full environment for the Kobalt project
+    This file contains the full environment for the Cobalt project
 """
 
-class Kobalt_env:
+class Cobalt_env:
     """
-        Kobalt env should be used as follows:
+        Cobalt env should be used as follows:
             0: use reset to reset the parameters
             1 -> 2 -> 3 -> 4 -> 1 -> ...
     """
